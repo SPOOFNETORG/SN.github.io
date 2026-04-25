@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpoofNet — Identity Verification</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.4/face_detection.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --ink:        #0f0f0f;
+  --ink-mid:    #52525e;
+  --ink-light:  #9494a0;
+  --ink-faint:  #e8e8ef;
+  --surface:    #ffffff;
+  --bg:         #f0f0f6;
+  --accent:     #5b5fc7;
+  --accent-dim: #ebebf8;
+  --green:      #1a9058;
+  --green-dim:  #edfaf3;
+  --green-line: #b6ecd0;
+  --red:        #c0283e;
+  --red-dim:    #fdedf0;
+  --red-line:   #f4bcc5;
+  --amber:      #d97706;
+}
+
+body {
+  font-family: 'DM Sans', -apple-system, sans-serif;
+  background: var(--bg);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+/* ─── CARD ─── */
+.card {
+  background: var(--surface);
+  width: 400px;
+  border-radius: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04), 0 16px 48px rgba(0,0,0,0.13);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ─── SCREEN SWITCH ─── */
+.screen { display: none; flex-direction: column; }
+.screen.active { display: flex; }
+
+/* ════════════════════════════════════════════
+   UNIVERSAL HEADER  — identical on all 3 screens
+════════════════════════════════════════════ */
+.card-header {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--ink-faint);
+  flex-shrink: 0;
+}
+
+/* left cluster: back button + step dots */
+.hdr-left { display: flex; align-items: center; gap: 10px; }
+
+.back-btn {
+  width: 30px; height: 30px;
+  border: 1.5px solid var(--ink-faint);
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-mid);
+  transition: background .12s, border-color .12s;
+  flex-shrink: 0;
+}
+.back-btn:hover { background: var(--ink-faint); }
+.back-btn svg { width: 15px; height: 15px; }
+.back-btn.invisible { visibility: hidden; pointer-events: none; }
+
+.step-dots { display: flex; align-items: center; gap: 5px; }
+.step-dot {
+  width: 6px; height: 6px;
+  border-radius: 3px;
+  background: var(--ink-faint);
+  transition: background .2s, width .2s;
+}
+.step-dot.active { width: 18px; background: var(--accent); }
+.step-dot.done   { background: var(--accent); opacity: 0.32; }
+
+/* right: brand */
+.hdr-brand { display: flex; align-items: center; gap: 7px; }
+.hdr-brand-mark {
+  width: 26px; height: 26px;
+  background: var(--ink);
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+}
+.hdr-brand-mark svg { width: 13px; height: 13px; }
+.hdr-brand-name {
+  font-size: 13px; font-weight: 700; color: var(--ink);
+  letter-spacing: -.02em;
+}
+
+/* ════════════════════════════════════════════
+   SCREEN BODY  — scrollable content zone
+════════════════════════════════════════════ */
+.screen-body {
+  flex: 1;
+  padding: 26px 26px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.section-heading { display: flex; flex-direction: column; gap: 5px; }
+.section-title {
+  font-size: 20px; font-weight: 700; color: var(--ink);
+  line-height: 1.2; letter-spacing: -.025em;
+}
+.section-sub {
+  font-size: 13.5px; color: var(--ink-mid); line-height: 1.65;
+}
+
+/* ════════════════════════════════════════════
+   UNIVERSAL FOOTER  — identical on all 3 screens
+════════════════════════════════════════════ */
+.card-footer {
+  height: 54px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 18px;
+  border-top: 1px solid var(--ink-faint);
+  flex-shrink: 0;
+}
+
+.ftr-lang {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; color: var(--ink-mid);
+  border: none; background: none; cursor: pointer; font-family: inherit;
+}
+.ftr-lang svg { width: 13px; height: 13px; }
+.ftr-lang-chev { font-size: 8px; color: var(--ink-light); }
+
+.ftr-secured { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.ftr-secured-lbl {
+  font-size: 8.5px; color: var(--ink-light);
+  letter-spacing: .08em; text-transform: uppercase;
+}
+.ftr-brand {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12.5px; font-weight: 700; color: var(--ink);
+}
+.ftr-brand-dot {
+  width: 13px; height: 13px;
+  background: var(--ink); border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+}
+.ftr-brand-dot svg { width: 8px; height: 8px; }
+
+/* ════════════════════════════════════════════
+   ACTION STRIP  — button zone above footer
+════════════════════════════════════════════ */
+.action-strip {
+  padding: 0 26px 22px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+.btn-primary {
+  width: 100%; padding: 14px 20px;
+  background: var(--ink); color: #fff;
+  border: none; border-radius: 50px;
+  font-size: 14.5px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+  letter-spacing: -.01em;
+  transition: background .12s, transform .08s;
+}
+.btn-primary:hover:not(:disabled) { background: #1c1c28; }
+.btn-primary:active:not(:disabled) { transform: scale(.99); }
+.btn-primary:disabled {
+  background: var(--ink-faint); color: var(--ink-light); cursor: not-allowed;
+}
+
+/* ════════════════════════════════════════════
+   SCREEN 1 — WELCOME
+════════════════════════════════════════════ */
+
+/* Illustration banner */
+.s1-banner {
+  background: var(--accent-dim);
+  border-radius: 12px;
+  padding: 26px 20px;
+  display: flex; align-items: center; justify-content: center;
+}
+.s1-phone {
+  background: var(--surface);
+  border-radius: 16px;
+  width: 116px;
+  padding: 13px 11px 15px;
+  box-shadow: 0 6px 28px rgba(91,95,199,.17);
+  display: flex; flex-direction: column; align-items: center; gap: 9px;
+}
+.s1-phone-bar { width: 38px; height: 4px; background: var(--accent); border-radius: 2px; }
+.s1-phone-label {
+  font-size: 8.5px; color: var(--ink-mid);
+  text-align: center; font-weight: 500; line-height: 1.5;
+}
+.s1-phone-cta { width: 76px; height: 17px; background: var(--amber); border-radius: 9px; }
+
+/* Model status pill */
+.model-pill {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--bg);
+  font-size: 12.5px; font-weight: 500; color: var(--ink-mid);
+}
+.model-pill-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--ink-light); flex-shrink: 0;
+}
+.model-pill.loading .model-pill-dot { background: var(--amber); animation: blink 1.2s infinite; }
+.model-pill.ready   .model-pill-dot { background: var(--green); }
+.model-pill.ready   { color: var(--green); }
+.model-pill.error   .model-pill-dot { background: var(--red); }
+.model-pill.error   { color: var(--red); }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+/* Consent */
+.consent {
+  font-size: 11.5px; color: var(--ink-light); line-height: 1.72;
+}
+.consent a { color: var(--accent); text-decoration: none; }
+
+/* ════════════════════════════════════════════
+   SCREEN 2 — INSTRUCTIONS
+════════════════════════════════════════════ */
+.tips { display: flex; flex-direction: column; gap: 10px; }
+.tip {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 14px; border-radius: 10px;
+  background: var(--bg);
+}
+.tip-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--accent-dim);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; flex-shrink: 0;
+}
+.tip-body strong {
+  display: block; font-size: 12.5px; font-weight: 600;
+  color: var(--ink); margin-bottom: 2px;
+}
+.tip-body span {
+  font-size: 12px; color: var(--ink-mid); line-height: 1.5;
+}
+
+/* ════════════════════════════════════════════
+   SCREEN 3 — CAMERA
+════════════════════════════════════════════ */
+#screen3 { overflow: hidden; }
+
+.cam-wrap {
+  position: relative; width: 100%;
+  background: #080810; overflow: hidden; flex-shrink: 0;
+}
+#videoEl {
+  width: 100%; height: 298px;
+  display: block; object-fit: cover;
+  transform: scaleX(-1);
+}
+.oval-svg {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none;
+}
+#cam-tooltip {
+  position: absolute; bottom: 12px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,.72); color: #fff;
+  font-size: 11.5px; font-weight: 500;
+  padding: 6px 15px; border-radius: 100px;
+  white-space: nowrap; pointer-events: none;
+  font-family: 'DM Sans', sans-serif;
+  backdrop-filter: blur(6px);
+}
+
+/* Controls zone */
+.cam-controls {
+  padding: 18px 24px 20px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+/* Fit pill */
+#face-fit-indicator {
+  font-size: 12px; font-weight: 500;
+  padding: 7px 16px; border-radius: 100px;
+  min-height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .18s, color .18s;
+}
+#face-fit-indicator.fit-neutral { background: transparent; color: transparent; }
+#face-fit-indicator.fit-good    { background: var(--green-dim); color: var(--green); }
+#face-fit-indicator.fit-bad     { background: var(--red-dim);   color: var(--red); }
+
+/* Progress row */
+.progress-row {
+  display: flex; align-items: center; gap: 10px;
+}
+.progress-track {
+  flex: 1; height: 4px; border-radius: 2px;
+  background: var(--ink-faint); overflow: hidden;
+}
+.progress-fill {
+  height: 100%; width: 0%; border-radius: 2px;
+  background: var(--accent); transition: width .1s linear;
+}
+.progress-label {
+  font-size: 11px; font-family: 'DM Mono', monospace;
+  color: var(--ink-light); min-width: 42px; text-align: right;
+}
+
+/* Result card */
+#result-box {
+  display: none; flex-direction: column; gap: 4px;
+  padding: 13px 16px; border-radius: 10px;
+  background: var(--bg); border: 1.5px solid var(--ink-faint);
+}
+#result-box.real   { background: var(--green-dim); border-color: var(--green-line); }
+#result-box.attack { background: var(--red-dim);   border-color: var(--red-line); }
+#result-label {
+  font-size: 14.5px; font-weight: 700; letter-spacing: -.01em;
+}
+#result-box.real   #result-label { color: var(--green); }
+#result-box.attack #result-label { color: var(--red); }
+#result-detail {
+  font-size: 10.5px; font-family: 'DM Mono', monospace;
+  color: var(--ink-light); line-height: 1.5;
+}
+
+/* Post-result */
+#post-result-box {
+  display: none; flex-direction: column; gap: 10px;
+}
+#redirect-msg {
+  font-size: 13px; color: var(--green); font-weight: 600; text-align: center;
+}
+#retry-msg {
+  font-size: 12.5px; color: var(--ink-mid); text-align: center; line-height: 1.5;
+}
+#retry-btn {
+  width: 100%; padding: 14px 20px;
+  background: var(--ink); color: #fff;
+  border: none; border-radius: 50px;
+  font-size: 14.5px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+  letter-spacing: -.01em;
+  transition: background .12s;
+  display: none;
+}
+#retry-btn:hover { background: #1c1c28; }
+
+/* Frames section — hidden */
+#frames-section { display: none !important; }
+
+/* Lightbox */
+#lightbox {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.88);
+  align-items: center; justify-content: center;
+  flex-direction: column; gap: 10px;
+  z-index: 999; cursor: pointer;
+}
+#lightbox.on { display: flex; }
+#lightbox img { image-rendering: pixelated; width: 224px; height: 224px; border-radius: 4px; }
+#lightbox span { font-size: 11px; color: #888; font-family: 'DM Mono', monospace; }
+
+#procCanvas { display: none; }
+</style>
+</head>
+<body>
+
+<canvas id="procCanvas" width="224" height="224"></canvas>
+
+<div class="card">
+
+  <!-- ═══════════════════════════════
+       SCREEN 1 — WELCOME
+  ═══════════════════════════════ -->
+  <div class="screen active" id="screen1">
+    <div class="card-header">
+      <div class="hdr-left">
+        <button class="back-btn invisible" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="step-dots">
+          <div class="step-dot active"></div>
+          <div class="step-dot"></div>
+          <div class="step-dot"></div>
+        </div>
+      </div>
+      <div class="hdr-brand">
+        <div class="hdr-brand-mark">
+          <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3.2" stroke="white" stroke-width="1.4"/><path d="M2 14.5c0-3.3 2.7-5 6-5s6 1.7 6 5" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </div>
+        <span class="hdr-brand-name">SpoofNet</span>
+      </div>
+    </div>
+
+    <div class="screen-body">
+      <div class="section-heading">
+        <div class="section-title">Verify your identity</div>
+        <div class="section-sub">SpoofNet uses liveness detection to confirm you're a real person — not a photo, video, or mask.</div>
+      </div>
+
+      <div class="s1-banner">
+        <div class="s1-phone">
+          <div class="s1-phone-bar"></div>
+          <div class="s1-phone-label">Liveness<br>check</div>
+          <svg width="50" height="50" viewBox="0 0 56 56" fill="none">
+            <circle cx="28" cy="28" r="28" fill="#e8e8f8"/>
+            <ellipse cx="28" cy="19" rx="13" ry="11" fill="#7b7ef8"/>
+            <rect x="15" y="19" width="5" height="10" rx="2" fill="#7b7ef8"/>
+            <rect x="36" y="19" width="5" height="10" rx="2" fill="#7b7ef8"/>
+            <path d="M17 20 Q28 8 39 20" fill="#5a5cd8"/>
+            <ellipse cx="28" cy="27" rx="10" ry="11" fill="#f5c5a3"/>
+            <circle cx="24" cy="26" r="1.5" fill="#333"/>
+            <circle cx="32" cy="26" r="1.5" fill="#333"/>
+            <path d="M25 30 Q28 32.5 31 30" stroke="#333" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+            <rect x="24" y="37" width="8" height="6" rx="2" fill="#f5c5a3"/>
+            <path d="M16 56 Q16 44 28 44 Q40 44 40 56" fill="#7b7ef8"/>
+          </svg>
+          <div class="s1-phone-cta"></div>
+        </div>
+      </div>
+
+      <div class="model-pill loading" id="model-pill">
+        <div class="model-pill-dot"></div>
+        <span id="model-pill-text">Loading model…</span>
+      </div>
+
+      <p class="consent">
+        By continuing you consent to SpoofNet collecting and processing your biometric data to verify identity and detect fraud, in accordance with its <a href="#">Privacy Policy</a>. Data retained for no more than 3 years.
+      </p>
+    </div>
+
+    <div class="action-strip">
+      <button class="btn-primary" id="begin-btn" onclick="showScreen(2)" disabled>Continue</button>
+    </div>
+
+    <div class="card-footer">
+      <button class="ftr-lang">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        English <span class="ftr-lang-chev">▾</span>
+      </button>
+      <div class="ftr-secured">
+        <span class="ftr-secured-lbl">Secured by</span>
+        <div class="ftr-brand">
+          <div class="ftr-brand-dot"><svg viewBox="0 0 8 8" fill="none"><circle cx="4" cy="3" r="1.5" stroke="white" stroke-width=".9"/><path d="M1 7.5c0-1.7 1.3-2.5 3-2.5s3 .8 3 2.5" stroke="white" stroke-width=".9" stroke-linecap="round"/></svg></div>
+          SpoofNet
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════
+       SCREEN 2 — INSTRUCTIONS
+  ═══════════════════════════════ -->
+  <div class="screen" id="screen2">
+    <div class="card-header">
+      <div class="hdr-left">
+        <button class="back-btn" onclick="showScreen(1)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="step-dots">
+          <div class="step-dot done"></div>
+          <div class="step-dot active"></div>
+          <div class="step-dot"></div>
+        </div>
+      </div>
+      <div class="hdr-brand">
+        <div class="hdr-brand-mark">
+          <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3.2" stroke="white" stroke-width="1.4"/><path d="M2 14.5c0-3.3 2.7-5 6-5s6 1.7 6 5" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </div>
+        <span class="hdr-brand-name">SpoofNet</span>
+      </div>
+    </div>
+
+    <div class="screen-body">
+      <div class="section-heading">
+        <div class="section-title">Before you begin</div>
+        <div class="section-sub">Follow these tips to get the best result.</div>
+      </div>
+
+      <div class="tips">
+        <div class="tip">
+          <div class="tip-icon">💡</div>
+          <div class="tip-body">
+            <strong>Good lighting</strong>
+            <span>Face an even light source. Avoid strong backlighting or harsh shadows on your face.</span>
+          </div>
+        </div>
+        <div class="tip">
+          <div class="tip-icon">👤</div>
+          <div class="tip-body">
+            <strong>Face the camera</strong>
+            <span>Centre yourself inside the oval and hold still while frames are being captured.</span>
+          </div>
+        </div>
+        <div class="tip">
+          <div class="tip-icon">🚫</div>
+          <div class="tip-body">
+            <strong>Remove obstructions</strong>
+            <span>Take off sunglasses, hats, or anything that covers your face.</span>
+          </div>
+        </div>
+        <div class="tip">
+          <div class="tip-icon">📷</div>
+          <div class="tip-body">
+            <strong>Be present</strong>
+            <span>Photos, screens, and printed images will be automatically detected and rejected.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="action-strip">
+      <button class="btn-primary" onclick="showScreen(3)">Open camera</button>
+    </div>
+
+    <div class="card-footer">
+      <button class="ftr-lang">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        English <span class="ftr-lang-chev">▾</span>
+      </button>
+      <div class="ftr-secured">
+        <span class="ftr-secured-lbl">Secured by</span>
+        <div class="ftr-brand">
+          <div class="ftr-brand-dot"><svg viewBox="0 0 8 8" fill="none"><circle cx="4" cy="3" r="1.5" stroke="white" stroke-width=".9"/><path d="M1 7.5c0-1.7 1.3-2.5 3-2.5s3 .8 3 2.5" stroke="white" stroke-width=".9" stroke-linecap="round"/></svg></div>
+          SpoofNet
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════
+       SCREEN 3 — CAMERA + ONNX
+  ═══════════════════════════════ -->
+  <div class="screen" id="screen3">
+    <div class="card-header">
+      <div class="hdr-left">
+        <button class="back-btn" onclick="goBack3()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="step-dots">
+          <div class="step-dot done"></div>
+          <div class="step-dot done"></div>
+          <div class="step-dot active"></div>
+        </div>
+      </div>
+      <div class="hdr-brand">
+        <div class="hdr-brand-mark">
+          <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3.2" stroke="white" stroke-width="1.4"/><path d="M2 14.5c0-3.3 2.7-5 6-5s6 1.7 6 5" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </div>
+        <span class="hdr-brand-name">SpoofNet</span>
+      </div>
+    </div>
+
+    <!-- Camera -->
+    <div class="cam-wrap">
+      <video id="videoEl" autoplay muted playsinline></video>
+      <svg class="oval-svg" viewBox="0 0 400 298" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <mask id="ovalCutout">
+            <rect width="400" height="298" fill="white"/>
+            <ellipse cx="200" cy="146" rx="107" ry="130" fill="black"/>
+          </mask>
+        </defs>
+        <rect width="400" height="298" fill="rgba(0,0,0,0.40)" mask="url(#ovalCutout)"/>
+        <ellipse id="ovalRing" cx="200" cy="146" rx="107" ry="130"
+          fill="none" stroke="white" stroke-width="2.5"/>
+      </svg>
+      <div id="cam-tooltip">Position your face inside the oval</div>
+    </div>
+
+    <!-- Controls -->
+    <div class="cam-controls">
+
+      <div id="face-fit-indicator" class="fit-neutral"></div>
+
+      <div class="progress-row">
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="progress-label" id="capture-status">—</div>
+      </div>
+
+      <div id="result-box">
+        <div id="result-label"></div>
+        <div id="result-detail"></div>
+      </div>
+
+      <div id="post-result-box">
+        <div id="redirect-msg"></div>
+        <div id="retry-msg"></div>
+        <button id="retry-btn" onclick="doRetry()">↺ Try again</button>
+      </div>
+
+      <!-- Frames strip — intentionally hidden -->
+      <div id="frames-section">
+        <div id="frames-label"></div>
+        <div id="frames-grid"></div>
+      </div>
+
+    </div>
+
+    <div class="card-footer">
+      <button class="ftr-lang">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        English <span class="ftr-lang-chev">▾</span>
+      </button>
+      <div class="ftr-secured">
+        <span class="ftr-secured-lbl">Secured by</span>
+        <div class="ftr-brand">
+          <div class="ftr-brand-dot"><svg viewBox="0 0 8 8" fill="none"><circle cx="4" cy="3" r="1.5" stroke="white" stroke-width=".9"/><path d="M1 7.5c0-1.7 1.3-2.5 3-2.5s3 .8 3 2.5" stroke="white" stroke-width=".9" stroke-linecap="round"/></svg></div>
+          SpoofNet
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /card -->
+
+<!-- Lightbox -->
+<div id="lightbox">
+  <img id="lb-img" src="" alt="">
+  <span id="lb-label"></span>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   CONSTANTS
+═══════════════════════════════════════════ */
+const MEAN           = [0.485, 0.456, 0.406];
+const STD            = [0.229, 0.224, 0.225];
+const EXPAND_TOP     = 0.00;
+const EXPAND_BOT     = 0.00;
+const EXPAND_LEFT    = 0.00;
+const EXPAND_RIGHT   = 0.00;
+const BUFFER_SIZE    = 35;
+const REAL_THRESHOLD = 0.80;
+
+const OVAL_CX_NORM     = 200 / 400;
+const OVAL_CY_NORM     = 146 / 298;
+const OVAL_RX_NORM     = 107 / 400;
+const OVAL_RY_NORM     = 130 / 298;
+const CENTER_TOLERANCE = 0.35;
+const MIN_FACE_FILL    = 0.55;
+const MAX_FACE_FILL    = 1.10;
+
+const REDIRECT_URL_SUCCESS = 'https://YOUR_WEBSITE_URL_HERE';
+const REDIRECT_URL_HOME    = '/';
+const MAX_RETRIES          = 2;
+
+/* ═══════════════════════════════════════════
+   DOM REFS
+═══════════════════════════════════════════ */
+const videoEl          = document.getElementById('videoEl');
+const ovalRing         = document.getElementById('ovalRing');
+const procCanvas       = document.getElementById('procCanvas');
+const pctx             = procCanvas.getContext('2d');
+const modelPill        = document.getElementById('model-pill');
+const modelPillText    = document.getElementById('model-pill-text');
+const beginBtn         = document.getElementById('begin-btn');
+const camTooltip       = document.getElementById('cam-tooltip');
+const captureStatus    = document.getElementById('capture-status');
+const progressFill     = document.getElementById('progress-fill');
+const resultBox        = document.getElementById('result-box');
+const resultLabel      = document.getElementById('result-label');
+const resultDetail     = document.getElementById('result-detail');
+const framesSection    = document.getElementById('frames-section');
+const framesGrid       = document.getElementById('frames-grid');
+const lightbox         = document.getElementById('lightbox');
+const lbImg            = document.getElementById('lb-img');
+const lbLabel          = document.getElementById('lb-label');
+const faceFitIndicator = document.getElementById('face-fit-indicator');
+const postResultBox    = document.getElementById('post-result-box');
+const redirectMsg      = document.getElementById('redirect-msg');
+const retryMsg         = document.getElementById('retry-msg');
+const retryBtn         = document.getElementById('retry-btn');
+
+/* ═══════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════ */
+let session        = null;
+let camStream      = null;
+let fd             = null;
+let capturing      = false;
+let scanning       = false;
+let frameBuffer    = [];
+let jpegBuffer     = [];
+let retryCount     = 0;
+let autoStartArmed = false;
+
+/* ═══════════════════════════════════════════
+   MODEL LOAD
+═══════════════════════════════════════════ */
+(async function loadModel() {
+  try {
+    ort.env.wasm.numThreads = navigator.hardwareConcurrency || 4;
+    session = await ort.InferenceSession.create('./spoofnet.onnx', { executionProviders: ['wasm'] });
+    modelPill.className    = 'model-pill ready';
+    modelPillText.textContent = 'Model ready';
+    beginBtn.disabled = false;
+  } catch (e) {
+    modelPill.className    = 'model-pill error';
+    modelPillText.textContent = 'Model failed: ' + e.message;
+    beginBtn.disabled = false;
+  }
+})();
+
+/* ═══════════════════════════════════════════
+   SCREEN NAVIGATION
+═══════════════════════════════════════════ */
+function showScreen(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen' + n).classList.add('active');
+  if (n === 3) initScreen3(); else teardownCamera();
+}
+
+function goBack3() {
+  teardownCamera();
+  resetCaptureState();
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen2').classList.add('active');
+}
+
+/* ═══════════════════════════════════════════
+   SCREEN 3 INIT
+═══════════════════════════════════════════ */
+async function initScreen3() {
+  resetCaptureState();
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video: { width: 640, height: 640, facingMode: 'user' }, audio: false
+    });
+    videoEl.srcObject = camStream;
+    await videoEl.play();
+  } catch (e) {
+    setCamTooltip('⚠ Camera access denied');
+    return;
+  }
+
+  fd = new FaceDetection({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.4/${f}` });
+  fd.setOptions({ model: 'short', minDetectionConfidence: 0.5 });
+  fd.onResults(onFaceResults);
+
+  (async function loop() {
+    if (!camStream) return;
+    await fd.send({ image: videoEl });
+    requestAnimationFrame(loop);
+  })();
+
+  setCamTooltip('Position your face inside the oval');
+  setProgress(0);
+  autoStartArmed = true;
+}
+
+function teardownCamera() {
+  if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+  fd = null;
+}
+
+function resetCaptureState() {
+  capturing = false; scanning = false;
+  frameBuffer = []; jpegBuffer = [];
+  autoStartArmed = false;
+  setProgress(0);
+  captureStatus.textContent     = '—';
+  resultBox.style.display       = 'none';
+  resultBox.className           = '';
+  postResultBox.style.display   = 'none';
+  redirectMsg.textContent       = '';
+  retryMsg.textContent          = '';
+  retryBtn.style.display        = 'none';
+  framesSection.style.display   = 'none';
+  framesGrid.innerHTML          = '';
+  ovalRing.setAttribute('stroke', 'white');
+  ovalRing.setAttribute('stroke-width', '2.5');
+  setFitIndicator(null);
+}
+
+/* ═══════════════════════════════════════════
+   START CAPTURE
+═══════════════════════════════════════════ */
+function startCapture() {
+  if (!camStream) return;
+  capturing = true; scanning = false;
+  frameBuffer = []; jpegBuffer = [];
+  resultBox.style.display     = 'none';
+  resultBox.className         = '';
+  postResultBox.style.display = 'none';
+  redirectMsg.textContent     = '';
+  retryMsg.textContent        = '';
+  retryBtn.style.display      = 'none';
+  framesSection.style.display = 'none';
+  framesGrid.innerHTML        = '';
+  setProgress(0);
+  captureStatus.textContent   = `0 / ${BUFFER_SIZE}`;
+  setCamTooltip('Hold still…');
+}
+
+/* ═══════════════════════════════════════════
+   RETRY
+═══════════════════════════════════════════ */
+function doRetry() {
+  retryBtn.style.display      = 'none';
+  retryMsg.textContent        = '';
+  postResultBox.style.display = 'none';
+  capturing = false; scanning = false;
+  frameBuffer = []; jpegBuffer = [];
+  resultBox.style.display     = 'none';
+  resultBox.className         = '';
+  framesSection.style.display = 'none';
+  framesGrid.innerHTML        = '';
+  setProgress(0);
+  captureStatus.textContent   = '—';
+  setCamTooltip('Position your face inside the oval');
+  autoStartArmed = true;
+}
+
+/* ═══════════════════════════════════════════
+   FACE FIT CHECK
+═══════════════════════════════════════════ */
+function checkFaceFit(bb) {
+  const dx = Math.abs(bb.xCenter - OVAL_CX_NORM) / OVAL_RX_NORM;
+  const dy = Math.abs(bb.yCenter - OVAL_CY_NORM) / OVAL_RY_NORM;
+  if (dx > CENTER_TOLERANCE)
+    return { ok: false, reason: bb.xCenter < OVAL_CX_NORM ? '← Move right' : 'Move left →' };
+  if (dy > CENTER_TOLERANCE)
+    return { ok: false, reason: bb.yCenter < OVAL_CY_NORM ? '↓ Move down' : '↑ Move up' };
+  const fillRatio = bb.height / (2 * OVAL_RY_NORM);
+  if (fillRatio < MIN_FACE_FILL) return { ok: false, reason: '🔍 Move closer' };
+  if (fillRatio > MAX_FACE_FILL) return { ok: false, reason: '↔ Move back' };
+  return { ok: true, reason: '✓ Hold still' };
+}
+
+/* ═══════════════════════════════════════════
+   MEDIAPIPE RESULTS
+═══════════════════════════════════════════ */
+function onFaceResults(results) {
+  const W = videoEl.videoWidth  || 640;
+  const H = videoEl.videoHeight || 640;
+
+  if (scanning) { ovalRing.setAttribute('stroke', '#f5a623'); return; }
+
+  if (!results.detections || !results.detections.length) {
+    ovalRing.setAttribute('stroke', 'white');
+    setFitIndicator(null);
+    if (capturing) {
+      frameBuffer = []; jpegBuffer = [];
+      setProgress(0); captureStatus.textContent = '—';
+      setCamTooltip('⚠ No face detected');
+    } else {
+      setCamTooltip('Position your face inside the oval');
+    }
+    return;
+  }
+
+  const bb  = results.detections[0].boundingBox;
+  const fit = checkFaceFit(bb);
+
+  if (!fit.ok) {
+    ovalRing.setAttribute('stroke', '#e03b3b');
+    setCamTooltip(fit.reason);
+    setFitIndicator(false, fit.reason);
+    if (capturing) {
+      frameBuffer = []; jpegBuffer = [];
+      setProgress(0); captureStatus.textContent = '—';
+    }
+    return;
+  }
+
+  ovalRing.setAttribute('stroke', capturing ? '#7b7ef8' : '#22a96a');
+  setCamTooltip(fit.reason);
+  setFitIndicator(true, fit.reason);
+
+  if (!capturing && autoStartArmed) {
+    autoStartArmed = false;
+    startCapture();
+    return;
+  }
+
+  if (!capturing) return;
+
+  // Capture frame
+  const rx = (bb.xCenter - bb.width  / 2) * W;
+  const ry = (bb.yCenter - bb.height / 2) * H;
+  const rw = bb.width  * W;
+  const rh = bb.height * H;
+
+  const x1 = Math.max(0, rx - EXPAND_LEFT  * rw);
+  const y1 = Math.max(0, ry - EXPAND_TOP   * rh);
+  const x2 = Math.min(W, rx + rw + EXPAND_RIGHT * rw);
+  const y2 = Math.min(H, ry + rh + EXPAND_BOT   * rh);
+
+  pctx.drawImage(videoEl, x1, y1, x2-x1, y2-y1, 0, 0, 224, 224);
+  const { data } = pctx.getImageData(0, 0, 224, 224);
+  frameBuffer.push(toFloat32(data));
+  jpegBuffer.push(procCanvas.toDataURL('image/jpeg', 0.95));
+
+  const pct = Math.round((frameBuffer.length / BUFFER_SIZE) * 100);
+  setProgress(pct);
+  captureStatus.textContent = `${frameBuffer.length} / ${BUFFER_SIZE}`;
+
+  if (frameBuffer.length >= BUFFER_SIZE) { scanning = true; runInference(); }
+}
+
+/* ═══════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════ */
+function setFitIndicator(good, msg) {
+  if (good === null) { faceFitIndicator.className = 'fit-neutral'; faceFitIndicator.textContent = ''; return; }
+  faceFitIndicator.className   = good ? 'fit-good' : 'fit-bad';
+  faceFitIndicator.textContent = msg || '';
+}
+function setProgress(pct) { progressFill.style.width = pct + '%'; }
+function setCamTooltip(msg) { camTooltip.textContent = msg; }
+
+/* ═══════════════════════════════════════════
+   NORMALIZE
+═══════════════════════════════════════════ */
+function toFloat32(data) {
+  const N = 224 * 224;
+  const f = new Float32Array(3 * N);
+  for (let i = 0; i < N; i++) {
+    f[0*N+i] = (data[i*4  ]/255 - MEAN[0]) / STD[0];
+    f[1*N+i] = (data[i*4+1]/255 - MEAN[1]) / STD[1];
+    f[2*N+i] = (data[i*4+2]/255 - MEAN[2]) / STD[2];
+  }
+  return f;
+}
+
+/* ═══════════════════════════════════════════
+   INFERENCE
+═══════════════════════════════════════════ */
+async function runInference() {
+  setCamTooltip('⏳ Analysing…');
+  captureStatus.textContent = 'Analysing…';
+  setProgress(100);
+
+  if (!session) {
+    captureStatus.textContent = '✗ Model not loaded';
+    resetAfterInference();
+    return;
+  }
+
+  const probs = [], times = [];
+  for (const f of frameBuffer) {
+    const tensor = new ort.Tensor('float32', f, [1, 3, 224, 224]);
+    const t0 = performance.now();
+    const out = await session.run({ [session.inputNames[0]]: tensor });
+    times.push(performance.now() - t0);
+    probs.push(1 / (1 + Math.exp(-out[session.outputNames[0]].data[0])));
+  }
+
+  const avg    = probs.reduce((a,b) => a+b, 0) / probs.length;
+  const pct    = (avg * 100).toFixed(1);
+  const isReal = avg >= REAL_THRESHOLD;
+  const label  = isReal ? 'real' : 'attack';
+  const avgMs  = (times.reduce((a,b)=>a+b,0)/times.length).toFixed(1);
+  const minMs  = Math.min(...times).toFixed(1);
+  const maxMs  = Math.max(...times).toFixed(1);
+
+  resultBox.style.display = 'flex';
+  resultBox.className     = label;
+  resultLabel.textContent = isReal ? '✓  Verified — Real person' : '✗  Rejected — Spoof detected';
+  resultDetail.textContent = `Confidence ${pct}%  ·  ${BUFFER_SIZE} frames  ·  ${avgMs}ms avg (${minMs}–${maxMs}ms)`;
+
+  ovalRing.setAttribute('stroke', isReal ? '#22a96a' : '#e03b3b');
+  ovalRing.setAttribute('stroke-width', '3');
+  setCamTooltip(isReal ? '✓ Verified' : '✗ Failed');
+  captureStatus.textContent = '—';
+
+  // Populate frames buffer internally (hidden from UI)
+  framesGrid.innerHTML = '';
+  jpegBuffer.forEach((url, i) => {
+    const probPct = (probs[i] * 100).toFixed(1);
+    const img = document.createElement('img');
+    img.src = url; img.title = `Frame ${i+1} · ${probPct}%`;
+    img.className = probs[i] >= REAL_THRESHOLD ? 'real' : 'attack';
+    img.addEventListener('click', () => {
+      lbImg.src = url;
+      lbLabel.textContent = `Frame ${i+1}  ·  ${probPct}%  ·  ${label}`;
+      lightbox.classList.add('on');
+    });
+    framesGrid.appendChild(img);
+  });
+
+  resetAfterInference();
+  postResultBox.style.display = 'flex';
+
+  if (isReal) {
+    let countdown = 2;
+    redirectMsg.textContent = `Redirecting in ${countdown}s…`;
+    const timer = setInterval(() => {
+      countdown--;
+      if (countdown > 0) { redirectMsg.textContent = `Redirecting in ${countdown}s…`; }
+      else { clearInterval(timer); redirectMsg.textContent = 'Redirecting…'; window.location.href = REDIRECT_URL_SUCCESS; }
+    }, 1000);
+
+  } else if (retryCount < MAX_RETRIES) {
+    retryCount++;
+    const rem = MAX_RETRIES - retryCount + 1;
+    retryMsg.textContent   = `${rem} attempt${rem !== 1 ? 's' : ''} remaining.`;
+    retryBtn.style.display = 'block';
+
+  } else {
+    retryCount = 0;
+    retryMsg.textContent = 'No attempts remaining. Returning to home…';
+    setTimeout(() => { window.location.href = REDIRECT_URL_HOME; }, 2500);
+  }
+}
+
+function resetAfterInference() {
+  capturing = false; scanning = false;
+  frameBuffer = []; jpegBuffer = [];
+  ovalRing.setAttribute('stroke', 'white');
+  ovalRing.setAttribute('stroke-width', '2.5');
+}
+
+lightbox.addEventListener('click', () => lightbox.classList.remove('on'));
+</script>
+</body>
+</html>
