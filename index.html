@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>SpoofNet — Identity Verification</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.4/face_detection.js"></script>
@@ -30,27 +30,40 @@
   --red-dim:    #fdedf0;
   --red-line:   #f4bcc5;
   --amber:      #d97706;
+
+  /* Responsive cam height */
+  --cam-h: clamp(200px, 44vw, 298px);
+}
+
+html, body {
+  height: 100%;
 }
 
 body {
   font-family: 'DM Sans', -apple-system, sans-serif;
   background: var(--bg);
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 16px;
+  padding: env(safe-area-inset-top, 16px) env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 16px) env(safe-area-inset-left, 16px);
+  padding-top: max(16px, env(safe-area-inset-top));
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
 }
 
 /* ─── CARD ─── */
 .card {
   background: var(--surface);
-  width: 400px;
+  width: 100%;
+  max-width: 420px;
   border-radius: 20px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.04), 0 16px 48px rgba(0,0,0,0.13);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  /* Ensure card never exceeds viewport */
+  max-height: calc(100dvh - 32px);
 }
 
 /* ─── SCREEN SWITCH ─── */
@@ -58,19 +71,18 @@ body {
 .screen.active { display: flex; }
 
 /* ════════════════════════════════════════════
-   UNIVERSAL HEADER  — identical on all 3 screens
+   UNIVERSAL HEADER
 ════════════════════════════════════════════ */
 .card-header {
-  height: 60px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 18px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--ink-faint);
   flex-shrink: 0;
 }
 
-/* left cluster: back button + step dots */
 .hdr-left { display: flex; align-items: center; gap: 10px; }
 
 .back-btn {
@@ -98,7 +110,6 @@ body {
 .step-dot.active { width: 18px; background: var(--accent); }
 .step-dot.done   { background: var(--accent); opacity: 0.32; }
 
-/* right: brand */
 .hdr-brand { display: flex; align-items: center; gap: 7px; }
 .hdr-brand-mark {
   width: 26px; height: 26px;
@@ -113,32 +124,36 @@ body {
 }
 
 /* ════════════════════════════════════════════
-   SCREEN BODY  — scrollable content zone
+   SCREEN BODY
 ════════════════════════════════════════════ */
 .screen-body {
   flex: 1;
-  padding: 26px 26px 22px;
+  padding: 22px 22px 18px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .section-heading { display: flex; flex-direction: column; gap: 5px; }
 .section-title {
-  font-size: 20px; font-weight: 700; color: var(--ink);
+  font-size: clamp(17px, 4.5vw, 20px);
+  font-weight: 700; color: var(--ink);
   line-height: 1.2; letter-spacing: -.025em;
 }
 .section-sub {
-  font-size: 13.5px; color: var(--ink-mid); line-height: 1.65;
+  font-size: clamp(12px, 3.2vw, 13.5px);
+  color: var(--ink-mid); line-height: 1.65;
 }
 
 /* ════════════════════════════════════════════
-   UNIVERSAL FOOTER  — identical on all 3 screens
+   UNIVERSAL FOOTER
 ════════════════════════════════════════════ */
 .card-footer {
-  height: 54px;
+  height: 50px;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 18px;
+  padding: 0 16px;
   border-top: 1px solid var(--ink-faint);
   flex-shrink: 0;
 }
@@ -168,10 +183,10 @@ body {
 .ftr-brand-dot svg { width: 8px; height: 8px; }
 
 /* ════════════════════════════════════════════
-   ACTION STRIP  — button zone above footer
+   ACTION STRIP
 ════════════════════════════════════════════ */
 .action-strip {
-  padding: 0 26px 22px;
+  padding: 0 22px 18px;
   display: flex; flex-direction: column; gap: 10px;
 }
 
@@ -183,6 +198,8 @@ body {
   cursor: pointer; font-family: inherit;
   letter-spacing: -.01em;
   transition: background .12s, transform .08s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .btn-primary:hover:not(:disabled) { background: #1c1c28; }
 .btn-primary:active:not(:disabled) { transform: scale(.99); }
@@ -193,30 +210,27 @@ body {
 /* ════════════════════════════════════════════
    SCREEN 1 — WELCOME
 ════════════════════════════════════════════ */
-
-/* Illustration banner */
 .s1-banner {
   background: var(--accent-dim);
   border-radius: 12px;
-  padding: 26px 20px;
+  padding: 22px 16px;
   display: flex; align-items: center; justify-content: center;
 }
 .s1-phone {
   background: var(--surface);
   border-radius: 16px;
-  width: 116px;
-  padding: 13px 11px 15px;
+  width: 110px;
+  padding: 12px 10px 14px;
   box-shadow: 0 6px 28px rgba(91,95,199,.17);
-  display: flex; flex-direction: column; align-items: center; gap: 9px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
 }
-.s1-phone-bar { width: 38px; height: 4px; background: var(--accent); border-radius: 2px; }
+.s1-phone-bar { width: 36px; height: 4px; background: var(--accent); border-radius: 2px; }
 .s1-phone-label {
   font-size: 8.5px; color: var(--ink-mid);
   text-align: center; font-weight: 500; line-height: 1.5;
 }
-.s1-phone-cta { width: 76px; height: 17px; background: var(--amber); border-radius: 9px; }
+.s1-phone-cta { width: 72px; height: 16px; background: var(--amber); border-radius: 9px; }
 
-/* Model status pill */
 .model-pill {
   display: flex; align-items: center; gap: 8px;
   padding: 10px 14px;
@@ -235,7 +249,6 @@ body {
 .model-pill.error   { color: var(--red); }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
 
-/* Consent */
 .consent {
   font-size: 11.5px; color: var(--ink-light); line-height: 1.72;
 }
@@ -244,17 +257,17 @@ body {
 /* ════════════════════════════════════════════
    SCREEN 2 — INSTRUCTIONS
 ════════════════════════════════════════════ */
-.tips { display: flex; flex-direction: column; gap: 10px; }
+.tips { display: flex; flex-direction: column; gap: 9px; }
 .tip {
   display: flex; align-items: flex-start; gap: 12px;
-  padding: 12px 14px; border-radius: 10px;
+  padding: 11px 13px; border-radius: 10px;
   background: var(--bg);
 }
 .tip-icon {
-  width: 32px; height: 32px; border-radius: 8px;
+  width: 30px; height: 30px; border-radius: 8px;
   background: var(--accent-dim);
   display: flex; align-items: center; justify-content: center;
-  font-size: 15px; flex-shrink: 0;
+  font-size: 14px; flex-shrink: 0;
 }
 .tip-body strong {
   display: block; font-size: 12.5px; font-weight: 600;
@@ -266,44 +279,81 @@ body {
 
 /* ════════════════════════════════════════════
    SCREEN 3 — CAMERA
+   KEY FIX: cam-wrap uses padding-top % trick so
+   the SVG overlay always matches the video aspect.
 ════════════════════════════════════════════ */
 #screen3 { overflow: hidden; }
 
 .cam-wrap {
-  position: relative; width: 100%;
-  background: #080810; overflow: hidden; flex-shrink: 0;
+  position: relative;
+  width: 100%;
+  flex-shrink: 0;
+  background: #080810;
+  overflow: hidden;
 }
+
+/* Enforce a consistent aspect ratio so the SVG overlay always matches */
+.cam-aspect {
+  position: relative;
+  width: 100%;
+  /* 298/400 = 74.5% — matches the SVG viewBox ratio */
+  padding-top: 74.5%;
+}
+
 #videoEl {
-  width: 100%; height: 298px;
-  display: block; object-fit: cover;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
   transform: scaleX(-1);
 }
+
+/* SVG overlay fills the cam-aspect box exactly */
 .oval-svg {
-  position: absolute; inset: 0; width: 100%; height: 100%;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
+  display: block;
 }
+
 #cam-tooltip {
-  position: absolute; bottom: 12px; left: 50%;
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
   transform: translateX(-50%);
-  background: rgba(0,0,0,.72); color: #fff;
-  font-size: 11.5px; font-weight: 500;
-  padding: 6px 15px; border-radius: 100px;
-  white-space: nowrap; pointer-events: none;
+  background: rgba(0,0,0,.72);
+  color: #fff;
+  font-size: clamp(10px, 2.8vw, 11.5px);
+  font-weight: 500;
+  padding: 5px 14px;
+  border-radius: 100px;
+  white-space: nowrap;
+  pointer-events: none;
   font-family: 'DM Sans', sans-serif;
   backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Controls zone */
 .cam-controls {
-  padding: 18px 24px 20px;
-  display: flex; flex-direction: column; gap: 12px;
+  padding: 14px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-/* Fit pill */
 #face-fit-indicator {
   font-size: 12px; font-weight: 500;
-  padding: 7px 16px; border-radius: 100px;
-  min-height: 32px;
+  padding: 6px 16px;
+  border-radius: 100px;
+  min-height: 30px;
   display: flex; align-items: center; justify-content: center;
   transition: background .18s, color .18s;
 }
@@ -311,7 +361,6 @@ body {
 #face-fit-indicator.fit-good    { background: var(--green-dim); color: var(--green); }
 #face-fit-indicator.fit-bad     { background: var(--red-dim);   color: var(--red); }
 
-/* Progress row */
 .progress-row {
   display: flex; align-items: center; gap: 10px;
 }
@@ -328,16 +377,15 @@ body {
   color: var(--ink-light); min-width: 42px; text-align: right;
 }
 
-/* Result card */
 #result-box {
   display: none; flex-direction: column; gap: 4px;
-  padding: 13px 16px; border-radius: 10px;
+  padding: 12px 14px; border-radius: 10px;
   background: var(--bg); border: 1.5px solid var(--ink-faint);
 }
 #result-box.real   { background: var(--green-dim); border-color: var(--green-line); }
 #result-box.attack { background: var(--red-dim);   border-color: var(--red-line); }
 #result-label {
-  font-size: 14.5px; font-weight: 700; letter-spacing: -.01em;
+  font-size: 14px; font-weight: 700; letter-spacing: -.01em;
 }
 #result-box.real   #result-label { color: var(--green); }
 #result-box.attack #result-label { color: var(--red); }
@@ -346,7 +394,6 @@ body {
   color: var(--ink-light); line-height: 1.5;
 }
 
-/* Post-result */
 #post-result-box {
   display: none; flex-direction: column; gap: 10px;
 }
@@ -365,11 +412,107 @@ body {
   letter-spacing: -.01em;
   transition: background .12s;
   display: none;
+  -webkit-tap-highlight-color: transparent;
 }
 #retry-btn:hover { background: #1c1c28; }
 
-/* Frames section — hidden */
 #frames-section { display: none !important; }
+
+/* ════════════════════════════════════════════
+   VERIFICATION SUCCESS POPUP
+════════════════════════════════════════════ */
+#verify-popup {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: popupBgIn .25s ease;
+}
+#verify-popup.on { display: flex; }
+
+@keyframes popupBgIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.popup-card {
+  background: var(--surface);
+  border-radius: 22px;
+  padding: 32px 28px 26px;
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.22);
+  animation: popupCardIn .3s cubic-bezier(.34,1.56,.64,1);
+  text-align: center;
+}
+
+@keyframes popupCardIn {
+  from { opacity: 0; transform: scale(.88) translateY(12px); }
+  to   { opacity: 1; transform: scale(1)   translateY(0); }
+}
+
+.popup-icon {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: var(--green-dim);
+  display: flex; align-items: center; justify-content: center;
+  animation: popupIconIn .4s .15s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes popupIconIn {
+  from { opacity: 0; transform: scale(.6); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.popup-icon svg {
+  width: 32px; height: 32px;
+  stroke: var(--green);
+}
+
+.popup-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -.02em;
+  line-height: 1.25;
+}
+
+.popup-subtitle {
+  font-size: 13px;
+  color: var(--ink-mid);
+  line-height: 1.6;
+}
+
+.popup-countdown {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--green);
+  font-family: 'DM Mono', monospace;
+  letter-spacing: -.02em;
+}
+
+.popup-bar-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--ink-faint);
+  overflow: hidden;
+}
+.popup-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--green);
+  width: 100%;
+  transition: width 1s linear;
+}
 
 /* Lightbox */
 #lightbox {
@@ -380,15 +523,60 @@ body {
   z-index: 999; cursor: pointer;
 }
 #lightbox.on { display: flex; }
-#lightbox img { image-rendering: pixelated; width: 224px; height: 224px; border-radius: 4px; }
+#lightbox img { image-rendering: pixelated; width: min(224px, 80vw); height: min(224px, 80vw); border-radius: 4px; }
 #lightbox span { font-size: 11px; color: #888; font-family: 'DM Mono', monospace; }
 
 #procCanvas { display: none; }
+
+/* ════════════════════════════════════════════
+   RESPONSIVE OVERRIDES
+════════════════════════════════════════════ */
+@media (max-width: 420px) {
+  body { padding: 0; align-items: flex-end; }
+  .card {
+    border-radius: 20px 20px 0 0;
+    max-height: 100dvh;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 360px) {
+  .screen-body { padding: 18px 16px 14px; gap: 13px; }
+  .action-strip { padding: 0 16px 14px; }
+  .cam-controls { padding: 12px 16px 14px; }
+  .card-header  { padding: 0 14px; }
+  .card-footer  { padding: 0 14px; }
+}
+
+/* Very short screens — compress a bit */
+@media (max-height: 640px) {
+  .screen-body { gap: 12px; padding-top: 16px; padding-bottom: 12px; }
+  .s1-banner { padding: 14px 12px; }
+  .tips { gap: 7px; }
+  .tip { padding: 9px 11px; }
+}
 </style>
 </head>
 <body>
 
 <canvas id="procCanvas" width="224" height="224"></canvas>
+
+<!-- ═══ VERIFICATION SUCCESS POPUP ═══ -->
+<div id="verify-popup">
+  <div class="popup-card">
+    <div class="popup-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 6L9 17l-5-5"/>
+      </svg>
+    </div>
+    <div class="popup-title">Verification Complete</div>
+    <div class="popup-subtitle">Identity confirmed. Redirecting you now…</div>
+    <div class="popup-countdown" id="popup-countdown">10</div>
+    <div class="popup-bar-track">
+      <div class="popup-bar-fill" id="popup-bar-fill"></div>
+    </div>
+  </div>
+</div>
 
 <div class="card">
 
@@ -576,21 +764,30 @@ body {
       </div>
     </div>
 
-    <!-- Camera -->
+    <!-- Camera — aspect-ratio wrapper ensures SVG overlay always matches -->
     <div class="cam-wrap">
-      <video id="videoEl" autoplay muted playsinline></video>
-      <svg class="oval-svg" viewBox="0 0 400 298" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <mask id="ovalCutout">
-            <rect width="400" height="298" fill="white"/>
-            <ellipse cx="200" cy="146" rx="107" ry="130" fill="black"/>
-          </mask>
-        </defs>
-        <rect width="400" height="298" fill="rgba(0,0,0,0.40)" mask="url(#ovalCutout)"/>
-        <ellipse id="ovalRing" cx="200" cy="146" rx="107" ry="130"
-          fill="none" stroke="white" stroke-width="2.5"/>
-      </svg>
-      <div id="cam-tooltip">Position your face inside the oval</div>
+      <div class="cam-aspect">
+        <video id="videoEl" autoplay muted playsinline></video>
+        <!--
+          SVG viewBox="0 0 400 298" matches the 400×298 coordinate space.
+          The overlay fills 100%×100% of cam-aspect regardless of actual pixel size.
+          Ellipse is centred at (200,146) = cx/cy from the viewBox midpoint.
+        -->
+        <svg class="oval-svg" viewBox="0 0 400 298" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <mask id="ovalCutout">
+              <rect width="400" height="298" fill="white"/>
+              <ellipse cx="200" cy="149" rx="107" ry="130" fill="black"/>
+            </mask>
+          </defs>
+          <!-- Dark vignette outside the oval -->
+          <rect width="400" height="298" fill="rgba(0,0,0,0.42)" mask="url(#ovalCutout)"/>
+          <!-- Oval ring — stroke stays inside the cutout edge -->
+          <ellipse id="ovalRing" cx="200" cy="149" rx="107" ry="130"
+            fill="none" stroke="white" stroke-width="2.5"/>
+        </svg>
+        <div id="cam-tooltip">Position your face inside the oval</div>
+      </div>
     </div>
 
     <!-- Controls -->
@@ -616,7 +813,6 @@ body {
         <button id="retry-btn" onclick="doRetry()">↺ Try again</button>
       </div>
 
-      <!-- Frames strip — intentionally hidden -->
       <div id="frames-section">
         <div id="frames-label"></div>
         <div id="frames-grid"></div>
@@ -661,7 +857,7 @@ const BUFFER_SIZE    = 35;
 const REAL_THRESHOLD = 0.80;
 
 const OVAL_CX_NORM     = 200 / 400;
-const OVAL_CY_NORM     = 146 / 298;
+const OVAL_CY_NORM     = 149 / 298;
 const OVAL_RX_NORM     = 107 / 400;
 const OVAL_RY_NORM     = 130 / 298;
 const CENTER_TOLERANCE = 0.35;
@@ -671,6 +867,7 @@ const MAX_FACE_FILL    = 1.10;
 const REDIRECT_URL_SUCCESS = 'https://spoofnetorg.github.io/SN.github.io/';
 const REDIRECT_URL_HOME    = '/';
 const MAX_RETRIES          = 2;
+const REDIRECT_SECS        = 10;
 
 /* ═══════════════════════════════════════════
    DOM REFS
@@ -698,6 +895,9 @@ const postResultBox    = document.getElementById('post-result-box');
 const redirectMsg      = document.getElementById('redirect-msg');
 const retryMsg         = document.getElementById('retry-msg');
 const retryBtn         = document.getElementById('retry-btn');
+const verifyPopup      = document.getElementById('verify-popup');
+const popupCountdown   = document.getElementById('popup-countdown');
+const popupBarFill     = document.getElementById('popup-bar-fill');
 
 /* ═══════════════════════════════════════════
    STATE
@@ -752,7 +952,7 @@ async function initScreen3() {
   resetCaptureState();
   try {
     camStream = await navigator.mediaDevices.getUserMedia({
-      video: { width: 640, height: 640, facingMode: 'user' }, audio: false
+      video: { width: { ideal: 640 }, height: { ideal: 640 }, facingMode: 'user' }, audio: false
     });
     videoEl.srcObject = camStream;
     await videoEl.play();
@@ -798,6 +998,7 @@ function resetCaptureState() {
   ovalRing.setAttribute('stroke', 'white');
   ovalRing.setAttribute('stroke-width', '2.5');
   setFitIndicator(null);
+  verifyPopup.classList.remove('on');
 }
 
 /* ═══════════════════════════════════════════
@@ -903,7 +1104,6 @@ function onFaceResults(results) {
 
   if (!capturing) return;
 
-  // Capture frame
   const rx = (bb.xCenter - bb.width  / 2) * W;
   const ry = (bb.yCenter - bb.height / 2) * H;
   const rw = bb.width  * W;
@@ -992,7 +1192,6 @@ async function runInference() {
   setCamTooltip(isReal ? '✓ Verified' : '✗ Failed');
   captureStatus.textContent = '—';
 
-  // Populate frames buffer internally (hidden from UI)
   framesGrid.innerHTML = '';
   jpegBuffer.forEach((url, i) => {
     const probPct = (probs[i] * 100).toFixed(1);
@@ -1011,13 +1210,7 @@ async function runInference() {
   postResultBox.style.display = 'flex';
 
   if (isReal) {
-    let countdown = 2;
-    redirectMsg.textContent = `Redirecting in ${countdown}s…`;
-    const timer = setInterval(() => {
-      countdown--;
-      if (countdown > 0) { redirectMsg.textContent = `Redirecting in ${countdown}s…`; }
-      else { clearInterval(timer); redirectMsg.textContent = 'Redirecting…'; window.location.href = REDIRECT_URL_SUCCESS; }
-    }, 1000);
+    showVerifyPopup();
 
   } else if (retryCount < MAX_RETRIES) {
     retryCount++;
@@ -1030,6 +1223,37 @@ async function runInference() {
     retryMsg.textContent = 'No attempts remaining. Returning to home…';
     setTimeout(() => { window.location.href = REDIRECT_URL_HOME; }, 2500);
   }
+}
+
+/* ═══════════════════════════════════════════
+   VERIFICATION SUCCESS POPUP  (10-second)
+═══════════════════════════════════════════ */
+function showVerifyPopup() {
+  let countdown = REDIRECT_SECS;
+
+  // Reset bar to full
+  popupBarFill.style.transition = 'none';
+  popupBarFill.style.width = '100%';
+  popupCountdown.textContent = countdown;
+
+  verifyPopup.classList.add('on');
+
+  // Start bar shrink after one frame
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      popupBarFill.style.transition = `width ${REDIRECT_SECS}s linear`;
+      popupBarFill.style.width = '0%';
+    });
+  });
+
+  const timer = setInterval(() => {
+    countdown--;
+    popupCountdown.textContent = countdown;
+    if (countdown <= 0) {
+      clearInterval(timer);
+      window.location.href = REDIRECT_URL_SUCCESS;
+    }
+  }, 1000);
 }
 
 function resetAfterInference() {
