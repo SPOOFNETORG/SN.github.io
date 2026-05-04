@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>SpoofNet — Identity Verification</title>
+<title>SpoofNet Verification</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.4/face_detection.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
@@ -31,13 +31,10 @@
   --red-line:   #f4bcc5;
   --amber:      #d97706;
 
-  /* Responsive cam height */
   --cam-h: clamp(200px, 44vw, 298px);
 }
 
-html, body {
-  height: 100%;
-}
+html, body { height: 100%; }
 
 body {
   font-family: 'DM Sans', -apple-system, sans-serif;
@@ -52,27 +49,22 @@ body {
   padding-bottom: max(16px, env(safe-area-inset-bottom));
 }
 
-/* ─── CARD ─── */
 .card {
   background: var(--surface);
   width: 100%;
   max-width: 420px;
   border-radius: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.04), 0 16px 48px rgba(0,0,0,0.13);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.07), 0 20px 64px rgba(0,0,0,0.16);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  /* Ensure card never exceeds viewport */
   max-height: calc(100dvh - 32px);
+  border: 1px solid rgba(0,0,0,0.04);
 }
 
-/* ─── SCREEN SWITCH ─── */
 .screen { display: none; flex-direction: column; }
 .screen.active { display: flex; }
 
-/* ════════════════════════════════════════════
-   UNIVERSAL HEADER
-════════════════════════════════════════════ */
 .card-header {
   height: 56px;
   display: flex;
@@ -108,7 +100,7 @@ body {
   transition: background .2s, width .2s;
 }
 .step-dot.active { width: 18px; background: var(--accent); }
-.step-dot.done   { background: var(--accent); opacity: 0.32; }
+.step-dot.done { background: var(--accent); opacity: 0.32; }
 
 .hdr-brand { display: flex; align-items: center; gap: 7px; }
 .hdr-brand-mark {
@@ -116,16 +108,15 @@ body {
   background: var(--ink);
   border-radius: 7px;
   display: flex; align-items: center; justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 0.9rem;
 }
-.hdr-brand-mark svg { width: 13px; height: 13px; }
 .hdr-brand-name {
   font-size: 13px; font-weight: 700; color: var(--ink);
   letter-spacing: -.02em;
 }
 
-/* ════════════════════════════════════════════
-   SCREEN BODY
-════════════════════════════════════════════ */
 .screen-body {
   flex: 1;
   padding: 22px 22px 18px;
@@ -147,24 +138,13 @@ body {
   color: var(--ink-mid); line-height: 1.65;
 }
 
-/* ════════════════════════════════════════════
-   UNIVERSAL FOOTER
-════════════════════════════════════════════ */
 .card-footer {
   height: 50px;
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; justify-content: flex-end;
   padding: 0 16px;
   border-top: 1px solid var(--ink-faint);
   flex-shrink: 0;
 }
-
-.ftr-lang {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 12px; color: var(--ink-mid);
-  border: none; background: none; cursor: pointer; font-family: inherit;
-}
-.ftr-lang svg { width: 13px; height: 13px; }
-.ftr-lang-chev { font-size: 8px; color: var(--ink-light); }
 
 .ftr-secured { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
 .ftr-secured-lbl {
@@ -179,12 +159,11 @@ body {
   width: 13px; height: 13px;
   background: var(--ink); border-radius: 3px;
   display: flex; align-items: center; justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 0.65rem;
 }
-.ftr-brand-dot svg { width: 8px; height: 8px; }
 
-/* ════════════════════════════════════════════
-   ACTION STRIP
-════════════════════════════════════════════ */
 .action-strip {
   padding: 0 22px 18px;
   display: flex; flex-direction: column; gap: 10px;
@@ -207,15 +186,13 @@ body {
   background: var(--ink-faint); color: var(--ink-light); cursor: not-allowed;
 }
 
-/* ════════════════════════════════════════════
-   SCREEN 1 — WELCOME
-════════════════════════════════════════════ */
 .s1-banner {
   background: var(--accent-dim);
   border-radius: 12px;
   padding: 22px 16px;
   display: flex; align-items: center; justify-content: center;
 }
+
 .s1-phone {
   background: var(--surface);
   border-radius: 16px;
@@ -224,6 +201,7 @@ body {
   box-shadow: 0 6px 28px rgba(91,95,199,.17);
   display: flex; flex-direction: column; align-items: center; gap: 8px;
 }
+
 .s1-phone-bar { width: 36px; height: 4px; background: var(--accent); border-radius: 2px; }
 .s1-phone-label {
   font-size: 8.5px; color: var(--ink-mid);
@@ -243,20 +221,12 @@ body {
   background: var(--ink-light); flex-shrink: 0;
 }
 .model-pill.loading .model-pill-dot { background: var(--amber); animation: blink 1.2s infinite; }
-.model-pill.ready   .model-pill-dot { background: var(--green); }
-.model-pill.ready   { color: var(--green); }
-.model-pill.error   .model-pill-dot { background: var(--red); }
-.model-pill.error   { color: var(--red); }
+.model-pill.ready .model-pill-dot { background: var(--green); }
+.model-pill.ready { color: var(--green); }
+.model-pill.error .model-pill-dot { background: var(--red); }
+.model-pill.error { color: var(--red); }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
 
-.consent {
-  font-size: 11.5px; color: var(--ink-light); line-height: 1.72;
-}
-.consent a { color: var(--accent); text-decoration: none; }
-
-/* ════════════════════════════════════════════
-   SCREEN 2 — INSTRUCTIONS
-════════════════════════════════════════════ */
 .tips { display: flex; flex-direction: column; gap: 9px; }
 .tip {
   display: flex; align-items: flex-start; gap: 12px;
@@ -277,11 +247,6 @@ body {
   font-size: 12px; color: var(--ink-mid); line-height: 1.5;
 }
 
-/* ════════════════════════════════════════════
-   SCREEN 3 — CAMERA
-   KEY FIX: cam-wrap uses padding-top % trick so
-   the SVG overlay always matches the video aspect.
-════════════════════════════════════════════ */
 #screen3 { overflow: hidden; }
 
 .cam-wrap {
@@ -292,11 +257,9 @@ body {
   overflow: hidden;
 }
 
-/* Enforce a consistent aspect ratio so the SVG overlay always matches */
 .cam-aspect {
   position: relative;
   width: 100%;
-  /* 298/400 = 74.5% — matches the SVG viewBox ratio */
   padding-top: 74.5%;
 }
 
@@ -310,7 +273,6 @@ body {
   transform: scaleX(-1);
 }
 
-/* SVG overlay fills the cam-aspect box exactly */
 .oval-svg {
   position: absolute;
   inset: 0;
@@ -341,7 +303,6 @@ body {
   text-overflow: ellipsis;
 }
 
-/* Controls zone */
 .cam-controls {
   padding: 14px 20px 16px;
   display: flex;
@@ -358,8 +319,8 @@ body {
   transition: background .18s, color .18s;
 }
 #face-fit-indicator.fit-neutral { background: transparent; color: transparent; }
-#face-fit-indicator.fit-good    { background: var(--green-dim); color: var(--green); }
-#face-fit-indicator.fit-bad     { background: var(--red-dim);   color: var(--red); }
+#face-fit-indicator.fit-good { background: var(--green-dim); color: var(--green); }
+#face-fit-indicator.fit-bad { background: var(--red-dim); color: var(--red); }
 
 .progress-row {
   display: flex; align-items: center; gap: 10px;
@@ -382,12 +343,12 @@ body {
   padding: 12px 14px; border-radius: 10px;
   background: var(--bg); border: 1.5px solid var(--ink-faint);
 }
-#result-box.real   { background: var(--green-dim); border-color: var(--green-line); }
-#result-box.attack { background: var(--red-dim);   border-color: var(--red-line); }
+#result-box.real { background: var(--green-dim); border-color: var(--green-line); }
+#result-box.attack { background: var(--red-dim); border-color: var(--red-line); }
 #result-label {
   font-size: 14px; font-weight: 700; letter-spacing: -.01em;
 }
-#result-box.real   #result-label { color: var(--green); }
+#result-box.real #result-label { color: var(--green); }
 #result-box.attack #result-label { color: var(--red); }
 #result-detail {
   font-size: 10.5px; font-family: 'DM Mono', monospace;
@@ -416,11 +377,6 @@ body {
 }
 #retry-btn:hover { background: #1c1c28; }
 
-#frames-section { display: none !important; }
-
-/* ════════════════════════════════════════════
-   VERIFICATION SUCCESS POPUP
-════════════════════════════════════════════ */
 #verify-popup {
   display: none;
   position: fixed;
@@ -436,10 +392,7 @@ body {
 }
 #verify-popup.on { display: flex; }
 
-@keyframes popupBgIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
+@keyframes popupBgIn { from { opacity: 0; } to { opacity: 1; } }
 
 .popup-card {
   background: var(--surface);
@@ -451,14 +404,15 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 14px;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.22);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 24px 64px rgba(0,0,0,0.24);
   animation: popupCardIn .3s cubic-bezier(.34,1.56,.64,1);
   text-align: center;
+  border: 1px solid rgba(255,255,255,0.6);
 }
 
 @keyframes popupCardIn {
   from { opacity: 0; transform: scale(.88) translateY(12px); }
-  to   { opacity: 1; transform: scale(1)   translateY(0); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .popup-icon {
@@ -468,14 +422,8 @@ body {
   display: flex; align-items: center; justify-content: center;
   animation: popupIconIn .4s .15s cubic-bezier(.34,1.56,.64,1) both;
 }
-@keyframes popupIconIn {
-  from { opacity: 0; transform: scale(.6); }
-  to   { opacity: 1; transform: scale(1); }
-}
-.popup-icon svg {
-  width: 32px; height: 32px;
-  stroke: var(--green);
-}
+@keyframes popupIconIn { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: scale(1); } }
+.popup-icon svg { width: 32px; height: 32px; stroke: var(--green); }
 
 .popup-title {
   font-size: 18px;
@@ -514,41 +462,19 @@ body {
   transition: width 1s linear;
 }
 
-/* Lightbox */
-#lightbox {
-  display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,.88);
-  align-items: center; justify-content: center;
-  flex-direction: column; gap: 10px;
-  z-index: 999; cursor: pointer;
-}
-#lightbox.on { display: flex; }
-#lightbox img { image-rendering: pixelated; width: min(224px, 80vw); height: min(224px, 80vw); border-radius: 4px; }
-#lightbox span { font-size: 11px; color: #888; font-family: 'DM Mono', monospace; }
-
-#procCanvas { display: none; }
-
-/* ════════════════════════════════════════════
-   RESPONSIVE OVERRIDES
-════════════════════════════════════════════ */
 @media (max-width: 420px) {
   body { padding: 0; align-items: flex-end; }
-  .card {
-    border-radius: 20px 20px 0 0;
-    max-height: 100dvh;
-    max-width: 100%;
-  }
+  .card { border-radius: 20px 20px 0 0; max-height: 100dvh; max-width: 100%; }
 }
 
 @media (max-width: 360px) {
   .screen-body { padding: 18px 16px 14px; gap: 13px; }
   .action-strip { padding: 0 16px 14px; }
   .cam-controls { padding: 12px 16px 14px; }
-  .card-header  { padding: 0 14px; }
-  .card-footer  { padding: 0 14px; }
+  .card-header { padding: 0 14px; }
+  .card-footer { padding: 0 14px; }
 }
 
-/* Very short screens — compress a bit */
 @media (max-height: 640px) {
   .screen-body { gap: 12px; padding-top: 16px; padding-bottom: 12px; }
   .s1-banner { padding: 14px 12px; }
@@ -561,7 +487,6 @@ body {
 
 <canvas id="procCanvas" width="224" height="224"></canvas>
 
-<!-- ═══ VERIFICATION SUCCESS POPUP ═══ -->
 <div id="verify-popup">
   <div class="popup-card">
     <div class="popup-icon">
@@ -569,8 +494,9 @@ body {
         <path d="M20 6L9 17l-5-5"/>
       </svg>
     </div>
-    <div class="popup-title">Verification Complete</div>
-    <div class="popup-subtitle">Identity confirmed. Redirecting you now…</div>
+    <div class="popup-title">Verified</div>
+    <div class="popup-subtitle" id="popup-subtitle">Identity confirmed. Redirecting…</div>
+    <div class="popup-metrics" id="popup-metrics" style="display: flex; gap: 12px; align-items: center; justify-content: center; font-size: 12px; color: var(--ink-mid);"></div>
     <div class="popup-countdown" id="popup-countdown">10</div>
     <div class="popup-bar-track">
       <div class="popup-bar-fill" id="popup-bar-fill"></div>
@@ -580,9 +506,6 @@ body {
 
 <div class="card">
 
-  <!-- ═══════════════════════════════
-       SCREEN 1 — WELCOME
-  ═══════════════════════════════ -->
   <div class="screen active" id="screen1">
     <div class="card-header">
       <div class="hdr-left">
@@ -596,9 +519,7 @@ body {
         </div>
       </div>
       <div class="hdr-brand">
-        <div class="hdr-brand-mark">
-          <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3.2" stroke="white" stroke-width="1.4"/><path d="M2 14.5c0-3.3 2.7-5 6-5s6 1.7 6 5" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg>
-        </div>
+        <div class="hdr-brand-mark">S</div>
         <span class="hdr-brand-name">SpoofNet</span>
       </div>
     </div>
@@ -606,7 +527,7 @@ body {
     <div class="screen-body">
       <div class="section-heading">
         <div class="section-title">Verify your identity</div>
-        <div class="section-sub">SpoofNet uses liveness detection to confirm you're a real person — not a photo, video, or mask.</div>
+        <div class="section-sub">Liveness detection confirms you're a real person, not a photo, video, or mask.</div>
       </div>
 
       <div class="s1-banner">
@@ -634,10 +555,6 @@ body {
         <div class="model-pill-dot"></div>
         <span id="model-pill-text">Loading model…</span>
       </div>
-
-      <p class="consent">
-        By continuing you consent to SpoofNet collecting and processing your biometric data to verify identity and detect fraud, in accordance with its <a href="#">Privacy Policy</a>. Data retained for no more than 3 years.
-      </p>
     </div>
 
     <div class="action-strip">
@@ -645,24 +562,16 @@ body {
     </div>
 
     <div class="card-footer">
-      <button class="ftr-lang">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-        English <span class="ftr-lang-chev">▾</span>
-      </button>
       <div class="ftr-secured">
         <span class="ftr-secured-lbl">Secured by</span>
         <div class="ftr-brand">
-          <div class="ftr-brand-dot"><svg viewBox="0 0 8 8" fill="none"><circle cx="4" cy="3" r="1.5" stroke="white" stroke-width=".9"/><path d="M1 7.5c0-1.7 1.3-2.5 3-2.5s3 .8 3 2.5" stroke="white" stroke-width=".9" stroke-linecap="round"/></svg></div>
+          <div class="ftr-brand-dot">S</div>
           SpoofNet
         </div>
       </div>
     </div>
   </div>
 
-
-  <!-- ═══════════════════════════════
-       SCREEN 2 — INSTRUCTIONS
-  ═══════════════════════════════ -->
   <div class="screen" id="screen2">
     <div class="card-header">
       <div class="hdr-left">
@@ -676,17 +585,15 @@ body {
         </div>
       </div>
       <div class="hdr-brand">
-        <div class="hdr-brand-mark">
-          <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3.2" stroke="white" stroke-width="1.4"/><path d="M2 14.5c0-3.3 2.7-5 6-5s6 1.7 6 5" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg>
-        </div>
+        <div class="hdr-brand-mark">S</div>
         <span class="hdr-brand-name">SpoofNet</span>
       </div>
     </div>
 
     <div class="screen-body">
       <div class="section-heading">
-        <div class="section-title">Before you begin</div>
-        <div class="section-sub">Follow these tips to get the best result.</div>
+        <div class="section-title">Get ready</div>
+        <div class="section-sub">Follow these tips for the best result.</div>
       </div>
 
       <div class="tips">
@@ -694,28 +601,28 @@ body {
           <div class="tip-icon">💡</div>
           <div class="tip-body">
             <strong>Good lighting</strong>
-            <span>Face an even light source. Avoid strong backlighting or harsh shadows on your face.</span>
+            <span>Face even light. Avoid harsh shadows.</span>
           </div>
         </div>
         <div class="tip">
           <div class="tip-icon">👤</div>
           <div class="tip-body">
-            <strong>Face the camera</strong>
-            <span>Centre yourself inside the oval and hold still while frames are being captured.</span>
+            <strong>Face camera</strong>
+            <span>Centre your face inside the oval.</span>
           </div>
         </div>
         <div class="tip">
           <div class="tip-icon">🚫</div>
           <div class="tip-body">
-            <strong>Remove obstructions</strong>
-            <span>Take off sunglasses, hats, or anything that covers your face.</span>
+            <strong>No obstructions</strong>
+            <span>Remove glasses, hats, masks.</span>
           </div>
         </div>
         <div class="tip">
           <div class="tip-icon">📷</div>
           <div class="tip-body">
             <strong>Be present</strong>
-            <span>Photos, screens, and printed images will be automatically detected and rejected.</span>
+            <span>Live face only. Photos will be rejected.</span>
           </div>
         </div>
       </div>
@@ -726,24 +633,16 @@ body {
     </div>
 
     <div class="card-footer">
-      <button class="ftr-lang">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-        English <span class="ftr-lang-chev">▾</span>
-      </button>
       <div class="ftr-secured">
         <span class="ftr-secured-lbl">Secured by</span>
         <div class="ftr-brand">
-          <div class="ftr-brand-dot"><svg viewBox="0 0 8 8" fill="none"><circle cx="4" cy="3" r="1.5" stroke="white" stroke-width=".9"/><path d="M1 7.5c0-1.7 1.3-2.5 3-2.5s3 .8 3 2.5" stroke="white" stroke-width=".9" stroke-linecap="round"/></svg></div>
+          <div class="ftr-brand-dot">S</div>
           SpoofNet
         </div>
       </div>
     </div>
   </div>
 
-
-  <!-- ═══════════════════════════════
-       SCREEN 3 — CAMERA + ONNX
-  ═══════════════════════════════ -->
   <div class="screen" id="screen3">
     <div class="card-header">
       <div class="hdr-left">
@@ -757,22 +656,14 @@ body {
         </div>
       </div>
       <div class="hdr-brand">
-        <div class="hdr-brand-mark">
-          <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3.2" stroke="white" stroke-width="1.4"/><path d="M2 14.5c0-3.3 2.7-5 6-5s6 1.7 6 5" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg>
-        </div>
+        <div class="hdr-brand-mark">S</div>
         <span class="hdr-brand-name">SpoofNet</span>
       </div>
     </div>
 
-    <!-- Camera — aspect-ratio wrapper ensures SVG overlay always matches -->
     <div class="cam-wrap">
       <div class="cam-aspect">
         <video id="videoEl" autoplay muted playsinline></video>
-        <!--
-          SVG viewBox="0 0 400 298" matches the 400×298 coordinate space.
-          The overlay fills 100%×100% of cam-aspect regardless of actual pixel size.
-          Ellipse is centred at (200,146) = cx/cy from the viewBox midpoint.
-        -->
         <svg class="oval-svg" viewBox="0 0 400 298" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <mask id="ovalCutout">
@@ -780,9 +671,7 @@ body {
               <ellipse cx="200" cy="149" rx="107" ry="130" fill="black"/>
             </mask>
           </defs>
-          <!-- Dark vignette outside the oval -->
           <rect width="400" height="298" fill="rgba(0,0,0,0.42)" mask="url(#ovalCutout)"/>
-          <!-- Oval ring — stroke stays inside the cutout edge -->
           <ellipse id="ovalRing" cx="200" cy="149" rx="107" ry="130"
             fill="none" stroke="white" stroke-width="2.5"/>
         </svg>
@@ -790,9 +679,7 @@ body {
       </div>
     </div>
 
-    <!-- Controls -->
     <div class="cam-controls">
-
       <div id="face-fit-indicator" class="fit-neutral"></div>
 
       <div class="progress-row">
@@ -808,45 +695,25 @@ body {
       </div>
 
       <div id="post-result-box">
-        <div id="redirect-msg"></div>
         <div id="retry-msg"></div>
-        <button id="retry-btn" onclick="doRetry()">↺ Try again</button>
+        <button id="retry-btn" onclick="doRetry()">Try again</button>
       </div>
-
-      <div id="frames-section">
-        <div id="frames-label"></div>
-        <div id="frames-grid"></div>
-      </div>
-
     </div>
 
     <div class="card-footer">
-      <button class="ftr-lang">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-        English <span class="ftr-lang-chev">▾</span>
-      </button>
       <div class="ftr-secured">
         <span class="ftr-secured-lbl">Secured by</span>
         <div class="ftr-brand">
-          <div class="ftr-brand-dot"><svg viewBox="0 0 8 8" fill="none"><circle cx="4" cy="3" r="1.5" stroke="white" stroke-width=".9"/><path d="M1 7.5c0-1.7 1.3-2.5 3-2.5s3 .8 3 2.5" stroke="white" stroke-width=".9" stroke-linecap="round"/></svg></div>
+          <div class="ftr-brand-dot">S</div>
           SpoofNet
         </div>
       </div>
     </div>
   </div>
 
-</div><!-- /card -->
-
-<!-- Lightbox -->
-<div id="lightbox">
-  <img id="lb-img" src="" alt="">
-  <span id="lb-label"></span>
 </div>
 
 <script>
-/* ═══════════════════════════════════════════
-   CONSTANTS
-═══════════════════════════════════════════ */
 const MEAN           = [0.485, 0.456, 0.406];
 const STD            = [0.229, 0.224, 0.225];
 const EXPAND_TOP     = 0.00;
@@ -864,14 +731,11 @@ const CENTER_TOLERANCE = 0.35;
 const MIN_FACE_FILL    = 0.55;
 const MAX_FACE_FILL    = 1.10;
 
-const REDIRECT_URL_SUCCESS = 'https://spoofnetorg.github.io/SN.github.io/';
+const REDIRECT_URL_SUCCESS = 'https://spoofnetorg.github.io/landing.github.io/';
 const REDIRECT_URL_HOME    = '/';
 const MAX_RETRIES          = 2;
-const REDIRECT_SECS        = 10;
+const REDIRECT_SECS        = 15;
 
-/* ═══════════════════════════════════════════
-   DOM REFS
-═══════════════════════════════════════════ */
 const videoEl          = document.getElementById('videoEl');
 const ovalRing         = document.getElementById('ovalRing');
 const procCanvas       = document.getElementById('procCanvas');
@@ -885,23 +749,15 @@ const progressFill     = document.getElementById('progress-fill');
 const resultBox        = document.getElementById('result-box');
 const resultLabel      = document.getElementById('result-label');
 const resultDetail     = document.getElementById('result-detail');
-const framesSection    = document.getElementById('frames-section');
-const framesGrid       = document.getElementById('frames-grid');
-const lightbox         = document.getElementById('lightbox');
-const lbImg            = document.getElementById('lb-img');
-const lbLabel          = document.getElementById('lb-label');
 const faceFitIndicator = document.getElementById('face-fit-indicator');
 const postResultBox    = document.getElementById('post-result-box');
-const redirectMsg      = document.getElementById('redirect-msg');
 const retryMsg         = document.getElementById('retry-msg');
 const retryBtn         = document.getElementById('retry-btn');
 const verifyPopup      = document.getElementById('verify-popup');
 const popupCountdown   = document.getElementById('popup-countdown');
 const popupBarFill     = document.getElementById('popup-bar-fill');
+const popupMetrics     = document.getElementById('popup-metrics');
 
-/* ═══════════════════════════════════════════
-   STATE
-═══════════════════════════════════════════ */
 let session        = null;
 let camStream      = null;
 let fd             = null;
@@ -911,10 +767,8 @@ let frameBuffer    = [];
 let jpegBuffer     = [];
 let retryCount     = 0;
 let autoStartArmed = false;
+let verificationTime = 0;
 
-/* ═══════════════════════════════════════════
-   MODEL LOAD
-═══════════════════════════════════════════ */
 (async function loadModel() {
   try {
     ort.env.wasm.numThreads = navigator.hardwareConcurrency || 4;
@@ -929,9 +783,6 @@ let autoStartArmed = false;
   }
 })();
 
-/* ═══════════════════════════════════════════
-   SCREEN NAVIGATION
-═══════════════════════════════════════════ */
 function showScreen(n) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen' + n).classList.add('active');
@@ -945,9 +796,6 @@ function goBack3() {
   document.getElementById('screen2').classList.add('active');
 }
 
-/* ═══════════════════════════════════════════
-   SCREEN 3 INIT
-═══════════════════════════════════════════ */
 async function initScreen3() {
   resetCaptureState();
   try {
@@ -957,7 +805,7 @@ async function initScreen3() {
     videoEl.srcObject = camStream;
     await videoEl.play();
   } catch (e) {
-    setCamTooltip('⚠ Camera access denied');
+    setCamTooltip('Camera access denied');
     return;
   }
 
@@ -990,20 +838,14 @@ function resetCaptureState() {
   resultBox.style.display       = 'none';
   resultBox.className           = '';
   postResultBox.style.display   = 'none';
-  redirectMsg.textContent       = '';
   retryMsg.textContent          = '';
   retryBtn.style.display        = 'none';
-  framesSection.style.display   = 'none';
-  framesGrid.innerHTML          = '';
   ovalRing.setAttribute('stroke', 'white');
   ovalRing.setAttribute('stroke-width', '2.5');
   setFitIndicator(null);
   verifyPopup.classList.remove('on');
 }
 
-/* ═══════════════════════════════════════════
-   START CAPTURE
-═══════════════════════════════════════════ */
 function startCapture() {
   if (!camStream) return;
   capturing = true; scanning = false;
@@ -1011,19 +853,13 @@ function startCapture() {
   resultBox.style.display     = 'none';
   resultBox.className         = '';
   postResultBox.style.display = 'none';
-  redirectMsg.textContent     = '';
   retryMsg.textContent        = '';
   retryBtn.style.display      = 'none';
-  framesSection.style.display = 'none';
-  framesGrid.innerHTML        = '';
   setProgress(0);
   captureStatus.textContent   = `0 / ${BUFFER_SIZE}`;
   setCamTooltip('Hold still…');
 }
 
-/* ═══════════════════════════════════════════
-   RETRY
-═══════════════════════════════════════════ */
 function doRetry() {
   retryBtn.style.display      = 'none';
   retryMsg.textContent        = '';
@@ -1032,33 +868,25 @@ function doRetry() {
   frameBuffer = []; jpegBuffer = [];
   resultBox.style.display     = 'none';
   resultBox.className         = '';
-  framesSection.style.display = 'none';
-  framesGrid.innerHTML        = '';
   setProgress(0);
   captureStatus.textContent   = '—';
   setCamTooltip('Position your face inside the oval');
   autoStartArmed = true;
 }
 
-/* ═══════════════════════════════════════════
-   FACE FIT CHECK
-═══════════════════════════════════════════ */
 function checkFaceFit(bb) {
   const dx = Math.abs(bb.xCenter - OVAL_CX_NORM) / OVAL_RX_NORM;
   const dy = Math.abs(bb.yCenter - OVAL_CY_NORM) / OVAL_RY_NORM;
   if (dx > CENTER_TOLERANCE)
-    return { ok: false, reason: bb.xCenter < OVAL_CX_NORM ? '← Move right' : 'Move left →' };
+    return { ok: false, reason: bb.xCenter < OVAL_CX_NORM ? 'Move right' : 'Move left' };
   if (dy > CENTER_TOLERANCE)
-    return { ok: false, reason: bb.yCenter < OVAL_CY_NORM ? '↓ Move down' : '↑ Move up' };
+    return { ok: false, reason: bb.yCenter < OVAL_CY_NORM ? 'Move down' : 'Move up' };
   const fillRatio = bb.height / (2 * OVAL_RY_NORM);
-  if (fillRatio < MIN_FACE_FILL) return { ok: false, reason: '🔍 Move closer' };
-  if (fillRatio > MAX_FACE_FILL) return { ok: false, reason: '↔ Move back' };
-  return { ok: true, reason: '✓ Hold still' };
+  if (fillRatio < MIN_FACE_FILL) return { ok: false, reason: 'Move closer' };
+  if (fillRatio > MAX_FACE_FILL) return { ok: false, reason: 'Move back' };
+  return { ok: true, reason: 'Hold still' };
 }
 
-/* ═══════════════════════════════════════════
-   MEDIAPIPE RESULTS
-═══════════════════════════════════════════ */
 function onFaceResults(results) {
   const W = videoEl.videoWidth  || 640;
   const H = videoEl.videoHeight || 640;
@@ -1071,7 +899,7 @@ function onFaceResults(results) {
     if (capturing) {
       frameBuffer = []; jpegBuffer = [];
       setProgress(0); captureStatus.textContent = '—';
-      setCamTooltip('⚠ No face detected');
+      setCamTooltip('No face detected');
     } else {
       setCamTooltip('Position your face inside the oval');
     }
@@ -1126,9 +954,6 @@ function onFaceResults(results) {
   if (frameBuffer.length >= BUFFER_SIZE) { scanning = true; runInference(); }
 }
 
-/* ═══════════════════════════════════════════
-   HELPERS
-═══════════════════════════════════════════ */
 function setFitIndicator(good, msg) {
   if (good === null) { faceFitIndicator.className = 'fit-neutral'; faceFitIndicator.textContent = ''; return; }
   faceFitIndicator.className   = good ? 'fit-good' : 'fit-bad';
@@ -1137,9 +962,6 @@ function setFitIndicator(good, msg) {
 function setProgress(pct) { progressFill.style.width = pct + '%'; }
 function setCamTooltip(msg) { camTooltip.textContent = msg; }
 
-/* ═══════════════════════════════════════════
-   NORMALIZE
-═══════════════════════════════════════════ */
 function toFloat32(data) {
   const N = 224 * 224;
   const f = new Float32Array(3 * N);
@@ -1151,20 +973,18 @@ function toFloat32(data) {
   return f;
 }
 
-/* ═══════════════════════════════════════════
-   INFERENCE
-═══════════════════════════════════════════ */
 async function runInference() {
-  setCamTooltip('⏳ Analysing…');
+  setCamTooltip('Analysing…');
   captureStatus.textContent = 'Analysing…';
   setProgress(100);
 
   if (!session) {
-    captureStatus.textContent = '✗ Model not loaded';
+    captureStatus.textContent = 'Model not loaded';
     resetAfterInference();
     return;
   }
 
+  const startTime = performance.now();
   const probs = [], times = [];
   for (const f of frameBuffer) {
     const tensor = new ort.Tensor('float32', f, [1, 3, 224, 224]);
@@ -1173,72 +993,52 @@ async function runInference() {
     times.push(performance.now() - t0);
     probs.push(1 / (1 + Math.exp(-out[session.outputNames[0]].data[0])));
   }
+  const endTime = performance.now();
+  verificationTime = Math.round(endTime - startTime);
 
   const avg    = probs.reduce((a,b) => a+b, 0) / probs.length;
   const pct    = (avg * 100).toFixed(1);
   const isReal = avg >= REAL_THRESHOLD;
   const label  = isReal ? 'real' : 'attack';
   const avgMs  = (times.reduce((a,b)=>a+b,0)/times.length).toFixed(1);
-  const minMs  = Math.min(...times).toFixed(1);
-  const maxMs  = Math.max(...times).toFixed(1);
 
   resultBox.style.display = 'flex';
   resultBox.className     = label;
-  resultLabel.textContent = isReal ? '✓  Verified — Real person' : '✗  Rejected — Spoof detected';
-  resultDetail.textContent = `Confidence ${pct}%  ·  ${BUFFER_SIZE} frames  ·  ${avgMs}ms avg (${minMs}–${maxMs}ms)`;
+  resultLabel.textContent = isReal ? 'Verified' : 'Rejected';
+  resultDetail.textContent = `${pct}% · ${verificationTime}ms`;
 
   ovalRing.setAttribute('stroke', isReal ? '#22a96a' : '#e03b3b');
   ovalRing.setAttribute('stroke-width', '3');
-  setCamTooltip(isReal ? '✓ Verified' : '✗ Failed');
+  setCamTooltip(isReal ? 'Verified' : 'Failed');
   captureStatus.textContent = '—';
-
-  framesGrid.innerHTML = '';
-  jpegBuffer.forEach((url, i) => {
-    const probPct = (probs[i] * 100).toFixed(1);
-    const img = document.createElement('img');
-    img.src = url; img.title = `Frame ${i+1} · ${probPct}%`;
-    img.className = probs[i] >= REAL_THRESHOLD ? 'real' : 'attack';
-    img.addEventListener('click', () => {
-      lbImg.src = url;
-      lbLabel.textContent = `Frame ${i+1}  ·  ${probPct}%  ·  ${label}`;
-      lightbox.classList.add('on');
-    });
-    framesGrid.appendChild(img);
-  });
 
   resetAfterInference();
   postResultBox.style.display = 'flex';
 
   if (isReal) {
     showVerifyPopup();
-
   } else if (retryCount < MAX_RETRIES) {
     retryCount++;
     const rem = MAX_RETRIES - retryCount + 1;
     retryMsg.textContent   = `${rem} attempt${rem !== 1 ? 's' : ''} remaining.`;
     retryBtn.style.display = 'block';
-
   } else {
     retryCount = 0;
-    retryMsg.textContent = 'No attempts remaining. Returning to home…';
+    retryMsg.textContent = 'No attempts remaining. Returning…';
     setTimeout(() => { window.location.href = REDIRECT_URL_HOME; }, 2500);
   }
 }
 
-/* ═══════════════════════════════════════════
-   VERIFICATION SUCCESS POPUP  (10-second)
-═══════════════════════════════════════════ */
 function showVerifyPopup() {
   let countdown = REDIRECT_SECS;
 
-  // Reset bar to full
   popupBarFill.style.transition = 'none';
   popupBarFill.style.width = '100%';
   popupCountdown.textContent = countdown;
+  popupMetrics.innerHTML = `<span>Verified in <strong>${verificationTime}ms</strong></span>`;
 
   verifyPopup.classList.add('on');
 
-  // Start bar shrink after one frame
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       popupBarFill.style.transition = `width ${REDIRECT_SECS}s linear`;
@@ -1262,8 +1062,6 @@ function resetAfterInference() {
   ovalRing.setAttribute('stroke', 'white');
   ovalRing.setAttribute('stroke-width', '2.5');
 }
-
-lightbox.addEventListener('click', () => lightbox.classList.remove('on'));
 </script>
 </body>
 </html>
